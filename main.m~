@@ -5,7 +5,7 @@ clc
 
 global kp
 
-kp = 300;
+kp = 400;
 
 addpath("/usr/local/lib/");
 addpath("/usr/local/include/esa_nn");
@@ -16,7 +16,7 @@ end
  libfunctions('libesa_nn','-full')
 %a= calllib('libesa_nn','test_print',1);
 
-simTime = 10;
+simTime = 50;
 simStep = 1/500;
 
 states = zeros(simTime/simStep,7);
@@ -25,10 +25,14 @@ inputs = zeros(simTime/simStep,2);
 inputs(1,:) = [-9.8 0];
 time = zeros(simTime/simStep,1);
 
+% states: x z vx vz theta q dq
+% In real drone, NED frame is used. So x == x_nn vx == vx_nn z == -z
+% 
 
-for i = 2:length(time)-1
+for i = 2:length(time)
     time(i) = (i-1)*simStep;
-    currentStates = [states(i-1,1)-5, states(i-1,3),-states(i-1,2)-1.5 states(i-1,4) -states(i-1,5) -states(i-1,6)];
+    currentStates = [states(i-1,1)-5, states(i-1,3),-states(i-1,2)-1.5 -states(i-1,4) -states(i-1,5) -states(i-1,6)];
+    %currentStates = [-2, -1,0 0 -45/180*pi 0];
     control_temp = [0 0];
     [~,control] = calllib('libesa_nn','nn',currentStates,control_temp);
     F_min = 1.76;
@@ -36,15 +40,14 @@ for i = 2:length(time)-1
     FL = F_min + control(1)*(F_max - F_min);
     FR = F_min + control(2)*(F_max - F_min);
     theta = states(i-1,5);
-    a_z_b_cmd = -(FL+FR)/0.389*cos(theta)+9.8;
-    
+    a_z_b_cmd = -(FL+FR)/0.389;
+    %a_z_b_cmd = -9.8;
     I_xx = 0.001242;
     L = 0.08;
     dq_cmd = (FR-FL)/I_xx*L;
     inputs(i-1,:) = [a_z_b_cmd dq_cmd];
-    states(i,:) = states(i-1,:) + simStep * drone_model(states(i-1,:),[a_z_b_cmd 0.1]);  
+    states(i,:) = states(i-1,:) + simStep * drone_model(states(i-1,:),[a_z_b_cmd dq_cmd]);  
 end
-time(end) = time(end-1);
 
 figure(1)
 subplot(2,1,1)
@@ -64,22 +67,27 @@ plot(time,states(:,3));
 ylabel('vx[m/s]');
 subplot(2,1,2)
 grid on
-plot(time,states(:,2));
-ylabel('z[m]');
+plot(time,states(:,4));
+ylabel('vz[m]');
 xlabel('time [s]')
 
-
 figure(3)
-subplot(2,1,1)
+subplot(3,1,1)
+grid on
+plot(time,states(:,5));
+ylabel('theta[rad]');
+subplot(3,1,2)
+grid on
+plot(time,states(:,6));
+ylabel('q[rad/s]');
+subplot(3,1,3)
 grid on
 hold on
 plot(time,states(:,7));
-%plot(time,inputs(:,2));
+plot(time,inputs(:,2),':');
+legend('dq','dq_nn')
 ylabel('dq[rad/s^2]');
-subplot(2,1,1)
-grid on
-plot(time,states(:,2));
-ylabel('z[m]');
 xlabel('time [s]')
+
 
 

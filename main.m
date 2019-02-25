@@ -26,11 +26,13 @@ inputs(1,:) = [-9.8 0];
 time = zeros(simTime/simStep,1);
 
 % states: x z vx vz theta q dq
+% A state, dq, is added to simulate the delay of our real drone's rate acceleration controller 
+% In real drone, NED frame is used. So x == x_nn vx == vx_nn z == -z_nn
+% vz == -vz_nn theta = -theta_nn q = -q_nn
 
 for i = 2:length(time)
     time(i) = (i-1)*simStep;
     currentStates = [states(i-1,1)-5, states(i-1,3),-states(i-1,2)-1.5 -states(i-1,4) -states(i-1,5) -states(i-1,6)];
-    %currentStates = [-2, -1,0 0 -45/180*pi 0];
     control_temp = [0 0];
     [~,control] = calllib('libesa_nn','nn',currentStates,control_temp);
     F_min = 1.76;
