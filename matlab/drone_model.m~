@@ -1,0 +1,23 @@
+function dStates = drone_model(states,inputs)
+global kp
+x = states(1);
+z = states(2);
+vx = states(3);
+vz = states(4);
+theta = states(5);
+q = states(6);
+dq = states(7);
+
+a_z_b = inputs(1);
+dq_nn = inputs(2);
+
+dx = vx;
+dz = vz;
+dvx = a_z_b * sin(theta)-0.5*vx;
+dvz = a_z_b * cos(theta)+9.8;
+dTheta = q;
+dq = ddq;
+
+
+dStates = [dx dz dvx dvz dTheta dq];
+end
